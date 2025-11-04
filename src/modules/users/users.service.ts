@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
+import { UserResponseDto } from './dto/user-reponse.dto';
 
 @Injectable()
 export class UsersService {
@@ -11,6 +12,18 @@ export class UsersService {
     private readonly userRepository: Repository<User>,
   ) {}
 
+  buildUserResponse(user: User, token: string): { user: UserResponseDto } {
+    return {
+      user: {
+        email: user.email,
+        token,
+        name: user.name,
+        bio: user.bio ?? null,
+        image: user.image ?? null,
+      },
+    };
+  }
+
   async createUser(dataUser: Partial<User>): Promise<User> {
     const newUser = this.userRepository.create(dataUser);
     if (newUser.password) {
@@ -18,5 +31,52 @@ export class UsersService {
       newUser.password = hashedPassword;
     }
     return this.userRepository.save(newUser);
+  }
+
+  async findById(userId: number): Promise<Partial<User> | null> {
+    return this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'name', 'email', 'bio', 'image', 'createdAt'],
+    });
+  }
+
+  async findByEmail(email: string): Promise<User | null> {
+    const user = await this.userRepository.findOneBy({ email });
+    return user;
+  }
+
+  async updateProfile(
+    userId: number,
+    dataUser: Partial<User>,
+  ): Promise<Partial<User> | null> {
+    await this.userRepository.update(userId, dataUser);
+    return this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'name', 'email', 'bio', 'image', 'createdAt'],
+    });
+  }
+
+  async validateUser(
+    email: string,
+    password: string,
+  ): Promise<Partial<User> | null> {
+    const user = await this.findByEmail(email);
+    if (user && user.password) {
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (isPasswordValid) {
+        return user;
+      }
+    }
+    return null;
+  }
+
+  async saveRefreshToken(userId: number, refreshToken: string): Promise<void> {
+    const user = await this.userRepository.findOneBy({ id: userId });
+    if (!user) {
+      throw new NotFoundException('Uset not found');
+    }
+    const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
+    user.refresh_token = hashedRefreshToken;
+    await this.userRepository.save(user);
   }
 }
