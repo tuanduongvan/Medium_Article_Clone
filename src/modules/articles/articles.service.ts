@@ -90,4 +90,35 @@ export class ArticlesService {
     }
     await this.articleRepository.remove(article);
   }
+
+  async findAllArticles(query: {
+    tag?: string;
+    author?: string;
+    limit?: number;
+    offset?: number;
+  }): Promise<{ articles: ArticleResponseDto[]; articlesCount: number }> {
+    const qb = this.articleRepository
+      .createQueryBuilder('article')
+      .leftJoinAndSelect('article.author', 'author');
+
+    if (query.tag) {
+      qb.andWhere('JSON_CONTAINS(article.tagList, :tag)', {
+        tag: JSON.stringify(query.tag),
+      });
+    }
+
+    if (query.author) {
+      qb.andWhere('author.name = :author', { author: query.author });
+    }
+
+    qb.take(query.limit ?? 5);
+    qb.skip(query.offset ?? 0);
+    qb.orderBy('article.createdAt', 'DESC');
+
+    const [articles, articlesCount] = await qb.getManyAndCount();
+    return {
+      articles: articles.map((a) => toArticleResponse(a)),
+      articlesCount,
+    };
+  }
 }

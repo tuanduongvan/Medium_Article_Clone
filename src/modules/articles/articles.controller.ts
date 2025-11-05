@@ -5,6 +5,7 @@ import {
   Get,
   Param,
   Post,
+  Query,
   Request,
   UseGuards,
 } from '@nestjs/common';
@@ -67,5 +68,22 @@ export class ArticlesController {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
     const currentUserId = request.user.userId as number;
     await this.articlesService.deleteArticle(slug, currentUserId);
+  }
+
+  @Get()
+  async toGetAllArticles(
+    @Query('tag') tag?: string,
+    @Query('author') author?: string,
+    @Query('limit') limit?: number,
+    @Query('offset') offset?: number,
+  ): Promise<{ articles: ArticleResponseDto[]; articlesCount: number }> {
+    const articles = await this.articlesService.findAllArticles({
+      tag,
+      author,
+      limit,
+      offset,
+    });
+
+    return articles;
   }
 }
