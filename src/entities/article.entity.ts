@@ -1,6 +1,7 @@
-import { Entity, Column, ManyToOne } from 'typeorm';
+import { Entity, Column, ManyToOne, BeforeInsert } from 'typeorm';
 import { BaseEntity } from './base.enity';
 import { User } from './user.entity';
+import slugify from 'slugify';
 
 @Entity('articles')
 export class Article extends BaseEntity {
@@ -18,4 +19,12 @@ export class Article extends BaseEntity {
 
   @Column({ type: 'json', nullable: true })
   tagList: string[];
+
+  @Column({ unique: true })
+  slug: string;
+
+  @BeforeInsert()
+  generateSlug() {
+    this.slug = slugify(this.title, { lower: true, strict: true });
+  }
 }
