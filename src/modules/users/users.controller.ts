@@ -33,7 +33,7 @@ export class UsersController {
     const userId = request.user.userId;
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-member-access
     const token = request.headers.authorization?.split(' ')[1];
-    const user = await this.userService.findById(userId as number);
+    const user = await this.userService.findUser(userId as number);
     return this.userService.buildUserResponse(user as User, token as string);
   }
 
