@@ -36,7 +36,7 @@ export class UsersService {
   async findUser(userId: number): Promise<Partial<User> | null> {
     return this.userRepository.findOne({
       where: { id: userId },
-      select: this.USER_SELECT_FIELDS,
+      select: ['id', 'name', 'email', 'bio', 'image', 'createdAt'],
     });
   }
 
@@ -52,7 +52,7 @@ export class UsersService {
     await this.userRepository.update(userId, dataUser);
     return this.userRepository.findOne({
       where: { id: userId },
-      select: this.USER_SELECT_FIELDS,
+      select: ['id', 'name', 'email', 'bio', 'image', 'createdAt'],
     });
   }
 
