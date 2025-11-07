@@ -4,6 +4,7 @@ import { User } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { UserResponseDto } from './dto/user-reponse.dto';
+import { ProfileResponseDto } from './dto/profile-response.dto';
 
 @Injectable()
 export class UsersService {
@@ -20,6 +21,20 @@ export class UsersService {
         name: user.name,
         bio: user.bio ?? null,
         image: user.image ?? null,
+      },
+    };
+  }
+
+  buildProfileResponse(
+    user: User,
+    following: boolean,
+  ): { profile: ProfileResponseDto } {
+    return {
+      profile: {
+        name: user.name,
+        bio: user.bio ?? null,
+        image: user.image ?? null,
+        following,
       },
     };
   }
@@ -78,5 +93,60 @@ export class UsersService {
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
     user.refresh_token = hashedRefreshToken;
     await this.userRepository.save(user);
+  }
+
+  async followUser(
+    username: string,
+    currentUserId: number,
+  ): Promise<{ profile: ProfileResponseDto }> {
+    const userToFollow = await this.userRepository.findOne({
+      where: { username: username },
+    });
+
+    if (!userToFollow) {
+      throw new NotFoundException('User not found');
+    }
+
+    const currentUser = await this.userRepository.findOne({
+      where: { id: currentUserId },
+      relations: ['following'],
+    });
+    if (!currentUser) {
+      throw new NotFoundException('Current user not found');
+    }
+
+    const isalreadyFollowing = currentUser.following.some(
+      (user) => user.id === userToFollow.id,
+    );
+    if (!isalreadyFollowing) {
+      currentUser.following.push(userToFollow);
+      await this.userRepository.save(currentUser);
+    }
+
+    return this.buildProfileResponse(userToFollow, true);
+  }
+
+  async unfollowUser(
+    username: string,
+    currentUserId: number,
+  ): Promise<{ profile: ProfileResponseDto }> {
+    const userToUnFollow = await this.userRepository.findOne({
+      where: { username: username },
+    });
+    if (!userToUnFollow) {
+      throw new NotFoundException('User not found');
+    }
+    const currentUser = await this.userRepository.findOne({
+      where: { id: currentUserId },
+      relations: ['following'],
+    });
+    if (!currentUser) {
+      throw new NotFoundException('Current user not found');
+    }
+    currentUser.following = currentUser.following.filter(
+      (user) => user.id !== userToUnFollow.id,
+    );
+    await this.userRepository.save(currentUser);
+    return this.buildProfileResponse(userToUnFollow, false);
   }
 }

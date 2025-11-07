@@ -6,6 +6,8 @@ import {
   UseGuards,
   Request,
   Patch,
+  Param,
+  Delete,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { User } from 'src/entities/user.entity';
@@ -13,6 +15,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { UpdateUserDto } from './dto/update-user.dto';
 import { UserResponseDto } from './dto/user-reponse.dto';
+import { ProfileResponseDto } from './dto/profile-response.dto';
 
 @Controller('users')
 export class UsersController {
@@ -52,5 +55,27 @@ export class UsersController {
       dataUser,
     );
     return this.userService.buildUserResponse(user as User, token as string);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':username/follow')
+  async followUser(
+    @Param('username') username: string,
+    @Request() request: any,
+  ): Promise<{ profile: ProfileResponseDto }> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const currentUserId = request.user.userId as number;
+    return await this.userService.followUser(username, currentUserId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':username/follow')
+  async ununfollowUser(
+    @Param('username') username: string,
+    @Request() request: any,
+  ): Promise<{ profile: ProfileResponseDto }> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const currentUserId = request.user.userId as number;
+    return await this.userService.unfollowUser(username, currentUserId);
   }
 }
