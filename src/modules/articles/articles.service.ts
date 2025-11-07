@@ -9,12 +9,17 @@ import { Repository } from 'typeorm';
 import { ArticleResponseDto } from './dto/article-response.dto';
 import { toArticleResponse } from './utils/article.mapper';
 import slugify from 'slugify';
+import { Comment } from 'src/entities/comment.entity';
+import { CommentResponseDto } from './dto/comment-response.dto';
+import { toCommnetResponse } from './utils/comment.mapper';
 
 @Injectable()
 export class ArticlesService {
   constructor(
     @InjectRepository(Article)
     private readonly articleRepository: Repository<Article>,
+    @InjectRepository(Comment)
+    private readonly commentRepository: Repository<Comment>,
   ) {}
 
   async createArticle(
@@ -120,5 +125,78 @@ export class ArticlesService {
       articles: articles.map((a) => toArticleResponse(a)),
       articlesCount,
     };
+  }
+
+  async createComment(
+    slug: string,
+    dataCmt: Partial<Comment>,
+    userId: number,
+  ): Promise<{ comment: CommentResponseDto }> {
+    const article = await this.articleRepository.findOne({
+      where: { slug },
+    });
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    const newComment = this.commentRepository.create({
+      ...dataCmt,
+      author: { id: userId },
+      article: { id: article.id },
+    });
+    const savedComment = await this.commentRepository.save(newComment);
+    const comment = await this.commentRepository.findOne({
+      where: { id: savedComment.id },
+      relations: ['author'],
+    });
+
+    if (!comment) {
+      throw new NotFoundException('Comment not found');
+    }
+
+    return { comment: toCommnetResponse(comment) };
+  }
+
+  async findCommentsByArticleSlug(
+    slug: string,
+  ): Promise<{ comments: CommentResponseDto[] }> {
+    const article = await this.articleRepository.findOne({
+      where: { slug },
+    });
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+    const comments = await this.commentRepository.find({
+      where: { article: { id: article.id } },
+      relations: ['author'],
+      order: { createdAt: 'ASC' },
+    });
+
+    return {
+      comments: comments.map((cmt) => toCommnetResponse(cmt)),
+    };
+  }
+
+  async deleteComment(
+    slug: string,
+    cmtId: number,
+    userId: number,
+  ): Promise<string> {
+    const article = await this.articleRepository.findOne({
+      where: { slug },
+    });
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    const comment = await this.commentRepository.findOne({
+      where: { id: cmtId, article: { id: article.id }, author: { id: userId } },
+    });
+    if (!comment) {
+      throw new NotFoundException('Comment not found or unauthorized');
+    }
+
+    await this.commentRepository.remove(comment);
+    return 'Comment deleted successfully';
   }
 }

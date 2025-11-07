@@ -1,6 +1,7 @@
-import { Entity, Column, ManyToOne, BeforeInsert } from 'typeorm';
+import { Entity, Column, ManyToOne, BeforeInsert, OneToMany } from 'typeorm';
 import { BaseEntity } from './base.enity';
 import { User } from './user.entity';
+import { Comment } from './comment.entity';
 import slugify from 'slugify';
 
 @Entity('articles')
@@ -16,6 +17,9 @@ export class Article extends BaseEntity {
     onDelete: 'CASCADE',
   })
   author: User;
+
+  @OneToMany(() => Comment, (comment) => comment.article)
+  comments: Comment[];
 
   @Column({ type: 'json', nullable: true })
   tagList: string[];

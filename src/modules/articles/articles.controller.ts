@@ -14,6 +14,8 @@ import { JwtAuthGuard } from 'src/guards/jwt-auth.guard';
 import { CreateArticleDto } from './dto/create-article.dto';
 import { ArticleResponseDto } from './dto/article-response.dto';
 import { UpdateArticleDto } from './dto/update-article.dto';
+import { CommentResponseDto } from './dto/comment-response.dto';
+import { CreateCommentDto } from './dto/create-comment.dto';
 
 @Controller('articles')
 export class ArticlesController {
@@ -85,5 +87,40 @@ export class ArticlesController {
     });
 
     return articles;
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':slug/comments')
+  async addComment(
+    @Param('slug') slug: string,
+    @Request() request: any,
+    @Body() createCommentDto: CreateCommentDto,
+  ): Promise<{ comment: CommentResponseDto }> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const currentUserId = request.user.userId as number;
+    return await this.articlesService.createComment(
+      slug,
+      createCommentDto,
+      currentUserId,
+    );
+  }
+
+  @Get(':slug/comments')
+  async getComments(
+    @Param('slug') slug: string,
+  ): Promise<{ comments: CommentResponseDto[] }> {
+    return await this.articlesService.findCommentsByArticleSlug(slug);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':slug/comments/:id')
+  async deleteComment(
+    @Param('slug') slug: string,
+    @Param('id') id: number,
+    @Request() request: any,
+  ): Promise<string> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const currentUserId = request.user.userId as number;
+    return await this.articlesService.deleteComment(slug, id, currentUserId);
   }
 }
