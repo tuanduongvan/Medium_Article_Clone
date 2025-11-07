@@ -1,4 +1,12 @@
-import { Entity, Column, ManyToOne, BeforeInsert, OneToMany } from 'typeorm';
+import {
+  Entity,
+  Column,
+  ManyToOne,
+  BeforeInsert,
+  OneToMany,
+  JoinTable,
+  ManyToMany,
+} from 'typeorm';
 import { BaseEntity } from './base.enity';
 import { User } from './user.entity';
 import { Comment } from './comment.entity';
@@ -27,8 +35,15 @@ export class Article extends BaseEntity {
   @Column({ unique: true })
   slug: string;
 
+  @Column({ default: 0 })
+  favoritesCount: number;
+
   @BeforeInsert()
   generateSlug() {
     this.slug = slugify(this.title, { lower: true, strict: true });
   }
+
+  @ManyToMany(() => User, (user) => user.favoritedArticles)
+  @JoinTable({ name: 'article_favortites' })
+  favoritedBy: User[];
 }

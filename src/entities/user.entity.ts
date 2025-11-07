@@ -1,4 +1,4 @@
-import { Entity, Column, OneToMany } from 'typeorm';
+import { Entity, Column, OneToMany, ManyToMany } from 'typeorm';
 import { BaseEntity } from './base.enity';
 import { Article } from './article.entity';
 import { Comment } from './comment.entity';
@@ -28,4 +28,7 @@ export class User extends BaseEntity {
 
   @OneToMany(() => Comment, (comment) => comment.author)
   comments: Comment[];
+
+  @ManyToMany(() => Article, (article) => article.favoritedBy)
+  favoritedArticles: Article[];
 }
