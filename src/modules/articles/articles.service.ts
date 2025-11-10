@@ -12,6 +12,7 @@ import slugify from 'slugify';
 import { Comment } from 'src/entities/comment.entity';
 import { CommentResponseDto } from './dto/comment-response.dto';
 import { toCommnetResponse } from './utils/comment.mapper';
+import { User } from 'src/entities/user.entity';
 
 @Injectable()
 export class ArticlesService {
@@ -20,6 +21,8 @@ export class ArticlesService {
     private readonly articleRepository: Repository<Article>,
     @InjectRepository(Comment)
     private readonly commentRepository: Repository<Comment>,
+    @InjectRepository(User)
+    private readonly userRepository: Repository<User>,
   ) {}
 
   async createArticle(
@@ -198,5 +201,59 @@ export class ArticlesService {
 
     await this.commentRepository.remove(comment);
     return 'Comment deleted successfully';
+  }
+
+  async favoriteArticle(
+    slug: string,
+    userId: number,
+  ): Promise<{ article: ArticleResponseDto }> {
+    const article = await this.articleRepository.findOne({
+      where: { slug },
+      relations: ['author', 'favoritedBy'],
+    });
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const alreadyFavorited = article.favoritedBy.some((u) => u.id === user.id);
+    if (!alreadyFavorited) {
+      article.favoritedBy.push(user);
+      article.favoritesCount++;
+      await this.articleRepository.save(article);
+    }
+
+    return { article: toArticleResponse(article, userId) };
+  }
+
+  async unfavoriteArticle(
+    slug: string,
+    userId: number,
+  ): Promise<{ article: ArticleResponseDto }> {
+    const article = await this.articleRepository.findOne({
+      where: { slug },
+      relations: ['author', 'favoritedBy'],
+    });
+    if (!article) {
+      throw new NotFoundException('Article not found');
+    }
+
+    const user = await this.userRepository.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    const index = article.favoritedBy.findIndex((u) => u.id === user.id);
+    if (index !== -1) {
+      article.favoritedBy.splice(index, 1);
+      article.favoritesCount--;
+      await this.articleRepository.save(article);
+    }
+
+    return { article: toArticleResponse(article, userId) };
   }
 }

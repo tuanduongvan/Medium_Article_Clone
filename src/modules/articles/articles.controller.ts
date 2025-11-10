@@ -123,4 +123,26 @@ export class ArticlesController {
     const currentUserId = request.user.userId as number;
     return await this.articlesService.deleteComment(slug, id, currentUserId);
   }
+
+  @UseGuards(JwtAuthGuard)
+  @Post(':slug/favorite')
+  async favoriteArticle(
+    @Param('slug') slug: string,
+    @Request() request: any,
+  ): Promise<{ article: ArticleResponseDto }> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const currentUserId = request.user.userId as number;
+    return await this.articlesService.favoriteArticle(slug, currentUserId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Delete(':slug/favorite')
+  async unfavoriteArticle(
+    @Param('slug') slug: string,
+    @Request() request: any,
+  ): Promise<{ article: ArticleResponseDto }> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+    const currentUserId = request.user.userId as number;
+    return await this.articlesService.unfavoriteArticle(slug, currentUserId);
+  }
 }
