@@ -1,4 +1,4 @@
-import { Entity, Column, OneToMany, ManyToMany } from 'typeorm';
+import { Entity, Column, OneToMany, ManyToMany, JoinTable } from 'typeorm';
 import { BaseEntity } from './base.enity';
 import { Article } from './article.entity';
 import { Comment } from './comment.entity';
@@ -7,6 +7,9 @@ import { Comment } from './comment.entity';
 export class User extends BaseEntity {
   @Column({ length: 100 })
   name: string;
+
+  @Column({ length: 100 })
+  username: string;
 
   @Column({ length: 100, unique: true })
   email: string;
@@ -31,4 +34,15 @@ export class User extends BaseEntity {
 
   @ManyToMany(() => Article, (article) => article.favoritedBy)
   favoritedArticles: Article[];
+
+  @ManyToMany(() => User, (user) => user.followers)
+  @JoinTable({
+    name: 'user_follows',
+    joinColumn: { name: 'followerId' },
+    inverseJoinColumn: { name: 'followingId' },
+  })
+  following: User[];
+
+  @ManyToMany(() => User, (user) => user.following)
+  followers: User[];
 }
